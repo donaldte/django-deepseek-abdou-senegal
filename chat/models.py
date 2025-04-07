@@ -19,6 +19,7 @@ class ChatMessage(models.Model):
     date_modification = models.DateTimeField(auto_now=True)
     createur = models.ForeignKey(User, on_delete=models.CASCADE)
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
+    ai_response = models.TextField(_("AI Response"), blank=True, null=True)
 
     def __str__(self):
         return self.contenu    
