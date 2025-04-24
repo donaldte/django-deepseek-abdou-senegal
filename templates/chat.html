@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>chat message </title>
+</head>
+<body>
+
+    <h1> Chat message {{ projet.nom }} </h1>
+
+    
+    <ul>
+        <div id="chat-box">
+
+            {% for message in messages %}
+                <p>Vous: {{ message.contenu|safe }}</p>
+                <p>Bot: {{ message.ai_response|safe }}</p>
+            {% endfor %}
+
+
+        </div>
+
+    </ul>
+    <form id="chat-form" action="">
+        <div id="typing-indicator" style="display: none;">L'IA est en train de répondre...</div>
+        <input id="message-input" type="text" name="message" placeholder="entrer votre message iic..." required>
+        <button id="chat_submit" type="submit">Send</button>
+    </form>
+
+
+    <script>
+        var chatSocket = null; 
+        var messageInput = document.getElementById('message-input');
+        var chatBox = document.getElementById('chat-box');
+        var typingIndicator = document.getElementById('typing-indicator');
+        var chatForm = document.getElementById('chat-form');
+        var chatSubmit = document.getElementById('chat_submit');
+        var projectID = '{{ projet.id }}';
+        var currentAimessage = null;
+
+        function openWebSocket(){
+            if (chatSocket !== null) {
+                chatSocket.close();
+            }
+
+            chatSocket = new WebSocket("ws://" + window.location.host + `/ws/chat/${ projectID }/`);
+
+            chatSocket.onopen = function(e) {
+                console.log("WebSocket connection established.");
+            };
+
+            chatSocket.onmessage = function(e) {
+                var data = JSON.parse(e.data);
+                if (data.sender==='user'){
+                    chatBox.innerHTML += "<p>Vous: " + data.message + "</p>";
+                } else if (data.sender==='ai') {
+                    typingIndicator.style.display = "block";
+                    chatSubmit.disabled = true;
+                    if(!currentAimessage){
+                        currentAimessage = document.createElement('div');
+                        currentAimessage.className = 'message ai-response';
+                        currentAimessage.innerHTML = "<p>Bot: " + data.message + "</p>";
+                        chatBox.appendChild(currentAimessage);
+                    }else {
+                        chatBox.innerHTML  += data.message;
+                    }
+                }
+            }
+
+            chatSocket.onclose = function(e) {
+                console.log("WebSocket connection closed.");
+                typingIndicator.style.display = "none";
+                chatSubmit.disabled = false;
+            };
+
+        }
+
+
+        document.getElementById('chat-form').onsubmit = function(e) {
+            e.preventDefault();
+
+            // open the WebSocket connection if it's not already open
+            openWebSocket();
+
+            chatSocket.onopen = function(){
+                chatSocket.send(JSON.stringify({
+                    'message': messageInput.value,
+                    'sender': 'user'
+                }));
+                
+                chatSubmit.disabled = true;
+                
+            }
+            
+
+        }
+
+    </script>
+    
+</body>
+</html>
